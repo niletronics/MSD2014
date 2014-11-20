@@ -9,24 +9,37 @@
 // Creation date  : 14th Nov 2014
 // -----------------------------------------------------------------------------
 // Last modified by : Nilesh 
-// Last modified on : 14th Nov 2014
+// Last modified on : 19th Nov 2014
 // -----------------------------------------------------------------------------
 // Dependencies     : 
 // Description      : MESIF state machine code for CACHE COHERENCE Protocol MESIF Implementation, This is the core module of the implementation
 // ------------------Compiler Directives-----------------//
 //
 //
-//-----------//
+//---------------------Changes--------------------------------------------//
+// Implementation of state machine
+// Taking data from project description for type of operation n, 0 to 9 expect 7.
 
-module mesif(tag,index, in_mesif, out_mesif, result, clk, LRU, operation );
+
+
+module mesif(tag,index, in_mesif, out_mesif, result, clk, LRU, operation, out_bus );
 
 //--------Parameters---------------//
 parameter tag_bits 		= 
 parameter index_bits 	= 
 parameter LRU_bits		= 
 parameter opr_bits		= 
-parameter CPU_WRITE		=
-parameter CPU_READ 		= 
+
+// Input Commands
+parameter cpu_write		= 3'd1;
+parameter cpu_read 		= 3'd0;
+parameter cpu_read_l2	= 3'd2; // Really not sure if we should distinguish between code and instruction. help
+parameter s_invalidate	= 3'd3;
+parameter s_read		= 3'd4;
+parameter s_write		= 3'd5;
+parameter s_rfo			= 3'd6;
+parameter clean			= 3'd8;
+parameter print			= 3'd9;
 /*
 0 read	request	from	L1	data	cache
 1 write	request	from	L1	data	cache
@@ -39,6 +52,12 @@ parameter CPU_READ 		=
 9 print	contents	and	state	of	each	valid	cache	line	(allow	subsequent	trace	activity) 
 */
 
+//Bus Operation types
+parameter READ 			= 3'd1; 		/* Bus Read */ 
+parameter WRITE 		= 3'd2; 		/* Bus Write */ 
+parameter INVALIDATE 	= 3'd3; 		/* Bus Invalidate */ 
+parameter RFO 			= 3'd4; 		/* Bus Read With Intent to Modify */  
+
 // States 
 parameter modified 	= 3'd0;
 parameter exclusive = 3'd1;
@@ -50,13 +69,15 @@ parameter forward 	= 3'd4;
 
 //----------- Input and Output declaration----------//
 
-input [tag_bits-1 : 0] tag;			//Tag bits from nmo module
-input [index_bits-1:0] index;		// index bits from nmo modules
-input [4:0] in_mesif;				// input mesif bits from rst module
-output [4:0] out_mesif;				// Output mesif bits to rst module
-input [LRU_bits-1:0] LRU;			// Input LRU from stu module
-input clk;							// Input clock from top module
-input [opr_bits-1:0] operation;		// Operation type input from nmo module
+input [tag_bits-1 : 0] tag;			//Tag bits from Naveen's module
+input [index_bits-1:0] index;		// index bits from Naveen's modules
+input [4:0] in_mesif;				// input mesif bits from Rizwan's module
+input [LRU_bits-1:0] LRU;			// Input LRU from Sai's module
+input clk;							// Input clock from Naveen's module
+input [opr_bits-1:0] operation;		// Operation type input from Naveen's module
+
+output [4:0] out_mesif;				// Output mesif bits to Rizwan's module
+output [2:0] out_bus;				// Output BUS Operation to Naveen's module
 
 
 
@@ -95,15 +116,25 @@ endcase
 always@(state or index)
 begin
 	case(state)
+	
 		modified: begin
-		if(operation = RFO && in_snoop = hitm) begin	// Need to get snoop result from snoop result generator and bus operation
-			out_bus = writeback;					
-			next_state = invalid;					// As per the state diagram
+		if(operation = s_rfo && in_snoop = hitm) begin	// Need to get snoop result from snoop result generator and bus operation
+			out_bus = WRITE;					
+			next_state = invalid;					
 			end
-		else if (operation = read && in_snoop = hitm) begin
+		else if (operation = s_read && in_snoop = hitm) begin
 			next_state = shared;
-			out_bus = writeback;
+			out_bus = WRITE;
 			end
-		else if (operation = read
-			
+		else if (operation = cpu_read || operation = cpu_read_l2 || operation = cpu_write)
+			next_state = modified;
+			end	
+		else 
+			next_state = modified
+			error_flag = 16'd0;
+		end
+		end
+		
+		
+		
 			
