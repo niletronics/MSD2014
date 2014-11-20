@@ -118,7 +118,7 @@ begin
 	case(state)
 	
 		modified: begin
-		if(operation = s_rfo && in_snoop = hitm) begin	// Need to get snoop result from snoop result generator and bus operation
+		if(operation = s_rfo && in_snoop = hitm) begin	// Snoop result generation pending
 			out_bus = WRITE;					
 			next_state = invalid;					
 			end
@@ -126,14 +126,18 @@ begin
 			next_state = shared;
 			out_bus = WRITE;
 			end
-		else if (operation = cpu_read || operation = cpu_read_l2 || operation = cpu_write)
+		else if (operation = cpu_read || operation = cpu_read_l2 || operation = cpu_write) begin
 			next_state = modified;
+			out_bus = NOP;
 			end	
-		else 
+		else begin
 			next_state = modified
-			error_flag = 16'd0;
+			end
 		end
-		end
+				
+		exclusive : begin
+		
+		
 		
 		
 		
