@@ -31,15 +31,15 @@ parameter LRU_bits		=
 parameter opr_bits		= 
 
 // Input Commands
-parameter cpu_write		= 3'd1;
-parameter cpu_read 		= 3'd0;
-parameter cpu_read_l2	= 3'd2; // Really not sure if we should distinguish between code and instruction. help
-parameter s_invalidate	= 3'd3;
-parameter s_read		= 3'd4;
-parameter s_write		= 3'd5;
-parameter s_rfo			= 3'd6;
-parameter clean			= 3'd8;
-parameter print			= 3'd9;
+parameter cpu_write		= 4'd1;
+parameter cpu_read 		= 4'd0;
+parameter cpu_read_l2	= 4'd2; // Really not sure if we should distinguish between code and instruction. help
+parameter s_invalidate	= 4'd3;
+parameter s_read		= 4'd4;
+parameter s_write		= 4'd5;
+parameter s_rfo			= 4'd6;
+parameter clean			= 4'd8;
+parameter print			= 4'd9;
 /*
 0 read	request	from	L1	data	cache
 1 write	request	from	L1	data	cache
@@ -136,6 +136,7 @@ begin
 		end
 				
 		exclusive : begin
+			if(operation = cpu_read
 		
 		
 		
