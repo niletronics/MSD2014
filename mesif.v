@@ -9,7 +9,7 @@
 // Creation date  : 14th Nov 2014
 // -----------------------------------------------------------------------------
 // Last modified by : Nilesh 
-// Last modified on : 19th Nov 2014
+// Last modified on : 21th Nov 2014
 // -----------------------------------------------------------------------------
 // Dependencies     : 
 // Description      : MESIF state machine code for CACHE COHERENCE Protocol MESIF Implementation, This is the core module of the implementation
@@ -40,6 +40,7 @@ parameter s_write		= 4'd5;
 parameter s_rfo			= 4'd6;
 parameter clean			= 4'd8;
 parameter print			= 4'd9;
+
 /*
 0 read	request	from	L1	data	cache
 1 write	request	from	L1	data	cache
@@ -65,6 +66,10 @@ parameter shared 	= 3'd2;
 parameter invalid 	= 3'd3;
 parameter forward 	= 3'd4;
 
+// Snoop parameters
+parameter hit 		= 2'd0;
+parameter hitm		= 2'd1;
+parameter nohit		= 2'd3;
 
 
 //----------- Input and Output declaration----------//
@@ -113,7 +118,7 @@ case(state)
 end
 endcase
 
-always@(state or index)
+always@(state or index) // review
 begin
 	case(state)
 	
@@ -126,20 +131,103 @@ begin
 			next_state = shared;
 			out_bus = WRITE;
 			end
+			
 		else if (operation = cpu_read || operation = cpu_read_l2 || operation = cpu_write) begin
 			next_state = modified;
 			out_bus = NOP;
 			end	
 		else begin
-			next_state = modified
+			next_state = modified;
 			end
 		end
 				
 		exclusive : begin
-			if(operation = cpu_read
-		
-		
-		
-		
-		
+			if (operation = s_rfo && in_snoop = hit) begin
+			out_bus = WRITE; // Forward
+			next_state = invalid;
+			end
+			else if(operation = s_read && in_snoop = hit) begin
+			out_bus = WRITE; // Forward
+			next_state = shared;
+			end
 			
+			else if(operation = cpu_read ) begin
+			out_bus = NOP;
+			next_state = exclusive;
+			end
+			else if (operation = cpu_write) begin
+			out_bus = NOP;
+			next_state = modified;
+			end
+			else begin
+			next_state = exclusive;
+			end
+		end
+		
+		shared : begin
+		if (operation = s_rfo) begin
+		out_bus = NOP;
+		next_state = invalid;
+		end
+		else if (operation = s_read) begin
+		out_bus = NOP;
+		next_state = invalid;
+		end
+		
+		else if(operation = cpu_read) begin
+		out_bus = NOP;
+		next_state = shared;
+		end
+		else if(operation = cpu_write) begin
+		out_bus = WRITE;
+		next_state = modified;
+		end
+		else begin
+		next_state = shared;
+		end
+	end
+	
+		invalid : begin
+		if(operation = cpu_read && in_snoop = hit) begin
+		out_bus = READ;
+		next_state = forward;
+		end
+		else if(operation = cpu_read && in_snoop = nohit) begin
+		out_bus = READ;
+		next_state = exclusive;
+		end
+		else if(operation = cpu_write ) begin
+		out_bus = RFO;
+		next_state = modified
+		end
+		else begin
+		next_state = invalid;
+		end
+	end
+	
+		forward : begin
+		if(operation = s_rfo) begin
+		out_bus = WRITE;
+		next_state = invalid;
+		end
+		else if(operation = s_read) begin
+		out_bus = WRITE;
+		next_state = shared;
+		end
+		
+		else if(operation = cpu_read) begin
+		out_bus = NOP;
+		next_state = forward;
+		end
+		else if(operation = cpu_write) begin
+		out_bus = RFO;
+		next_state = modified;
+		end
+		else begin
+		next_state = forward;
+		end
+	end
+	
+	endcase
+	
+endmodule

@@ -1,0 +1,2 @@
+notes :
+In state machine design, snooping actions have been given higher priority than its own CPU operation
