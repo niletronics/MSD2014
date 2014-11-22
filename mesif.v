@@ -22,13 +22,27 @@
 
 
 
-module mesif(tag,index, in_mesif, out_mesif, result, clk, LRU, operation, out_bus );
+module mesif(tag, index, in_mesif, clk, LRU, operation, out_snoop, out_bus, out_mesif, tag_bits, index_bits, LRU_bits, opr_bits);
 
 //--------Parameters---------------//
-parameter tag_bits 		= 
+/*parameter tag_bits 		= 
 parameter index_bits 	= 
 parameter LRU_bits		= 
 parameter opr_bits		= 
+*/
+
+
+//----------- Input and Output declaration----------//
+
+input [tag_bits-1 : 0] tag;			//Tag bits from Naveen's module
+input [index_bits-1:0] index;		// index bits from Naveen's modules
+input [4:0] in_mesif;				// input mesif bits from Rizwan's module
+input [LRU_bits-1:0] LRU;			// Input LRU from Sai's module
+input clk;							// Input clock from Naveen's module
+input [opr_bits-1:0] operation;		// Operation type input from Naveen's module
+
+output [4:0] out_mesif;				// Output mesif bits to Rizwan's module
+output [2:0] out_bus;				// Output BUS Operation to Naveen's module
 
 // Input Commands
 parameter cpu_write		= 4'd1;
@@ -58,6 +72,7 @@ parameter READ 			= 3'd1; 		/* Bus Read */
 parameter WRITE 		= 3'd2; 		/* Bus Write */ 
 parameter INVALIDATE 	= 3'd3; 		/* Bus Invalidate */ 
 parameter RFO 			= 3'd4; 		/* Bus Read With Intent to Modify */  
+parameter NOP			= 3'd5;
 
 // States 
 parameter modified 	= 3'd0;
@@ -69,21 +84,7 @@ parameter forward 	= 3'd4;
 // Snoop parameters
 parameter hit 		= 2'd0;
 parameter hitm		= 2'd1;
-parameter nohit		= 2'd3;
-
-
-//----------- Input and Output declaration----------//
-
-input [tag_bits-1 : 0] tag;			//Tag bits from Naveen's module
-input [index_bits-1:0] index;		// index bits from Naveen's modules
-input [4:0] in_mesif;				// input mesif bits from Rizwan's module
-input [LRU_bits-1:0] LRU;			// Input LRU from Sai's module
-input clk;							// Input clock from Naveen's module
-input [opr_bits-1:0] operation;		// Operation type input from Naveen's module
-
-output [4:0] out_mesif;				// Output mesif bits to Rizwan's module
-output [2:0] out_bus;				// Output BUS Operation to Naveen's module
-
+parameter nohit		= 2'd2;
 
 
 
@@ -120,14 +121,15 @@ endcase
 
 always@(state or index) // review
 begin
-	case(state)
-	
+	case(state)	
 		modified: begin
-		if(operation = s_rfo && in_snoop = hitm) begin	// Snoop result generation pending
+		if(operation = s_rfo) begin	// Snoop result generation pending
+			out_snoop = hitm;
 			out_bus = WRITE;					
 			next_state = invalid;					
 			end
-		else if (operation = s_read && in_snoop = hitm) begin
+		else if (operation = s_read) begin
+			out_snoop = hitm;
 			next_state = shared;
 			out_bus = WRITE;
 			end
@@ -142,19 +144,21 @@ begin
 		end
 				
 		exclusive : begin
-			if (operation = s_rfo && in_snoop = hit) begin
+			if (operation = s_rfo) begin
+			out_snoop = hit;
 			out_bus = WRITE; // Forward
 			next_state = invalid;
 			end
 			else if(operation = s_read && in_snoop = hit) begin
+			out_snoop = hit;
 			out_bus = WRITE; // Forward
 			next_state = shared;
 			end
 			
-			else if(operation = cpu_read ) begin
-			out_bus = NOP;
-			next_state = exclusive;
-			end
+			//else if(operation = cpu_read) begin
+			//out_bus = NOP;
+			//next_state = exclusive;
+			//end
 			else if (operation = cpu_write) begin
 			out_bus = NOP;
 			next_state = modified;
@@ -169,17 +173,17 @@ begin
 		out_bus = NOP;
 		next_state = invalid;
 		end
-		else if (operation = s_read) begin
-		out_bus = NOP;
-		next_state = invalid;
-		end
+		//else if (operation = s_read) begin
+		//out_bus = NOP;
+		//next_state = shared;
+		//end
 		
-		else if(operation = cpu_read) begin
-		out_bus = NOP;
-		next_state = shared;
-		end
+		//else if(operation = cpu_read) begin
+		//out_bus = NOP;
+		//next_state = shared;
+		//end
 		else if(operation = cpu_write) begin
-		out_bus = WRITE;
+		out_bus = RFO;
 		next_state = modified;
 		end
 		else begin
@@ -196,7 +200,7 @@ begin
 		out_bus = READ;
 		next_state = exclusive;
 		end
-		else if(operation = cpu_write ) begin
+		else if(operation = cpu_write) begin
 		out_bus = RFO;
 		next_state = modified
 		end
@@ -207,18 +211,20 @@ begin
 	
 		forward : begin
 		if(operation = s_rfo) begin
+		out_snoop = hit;
 		out_bus = WRITE;
 		next_state = invalid;
 		end
 		else if(operation = s_read) begin
+		out_snoop = hit;
 		out_bus = WRITE;
 		next_state = shared;
 		end
 		
-		else if(operation = cpu_read) begin
-		out_bus = NOP;
-		next_state = forward;
-		end
+		//else if(operation = cpu_read) begin
+		//out_bus = NOP;
+		//next_state = forward;
+		//end
 		else if(operation = cpu_write) begin
 		out_bus = RFO;
 		next_state = modified;
