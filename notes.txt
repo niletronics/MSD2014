@@ -2,7 +2,11 @@ notes :
 In state machine design, snooping actions have been given higher priority than its own CPU operation
 
 
+<<<<<<< HEAD
 I am creating a branch and want to see if that works.
 
 Change done in nilesh branch.again
 Change done in nilesh branch.again
+=======
+I am creating a branch and want to see if that works  : test branch again
+>>>>>>> origin/test
