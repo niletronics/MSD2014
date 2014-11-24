@@ -5,5 +5,9 @@ changes done in master branch
 =======
 
 
+<<<<<<< HEAD
 I am creating a branch and want to see if that works
 >>>>>>> origin/master
+=======
+I am creating a branch and want to see if that works  : test branch again
+>>>>>>> origin/test
