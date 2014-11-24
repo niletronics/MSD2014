@@ -97,7 +97,7 @@ parameter nohit		= 2'd2;
 
 //--------------State Machine Implementation----------------//
 
-always@(state)
+/*always@(state)
 begin
 case(state)
 	modified : begin
@@ -121,9 +121,9 @@ case(state)
 	end
 endcase
 end
+*/
 
-
-always@(state or index) // review
+/*always@(state or index) // review
 begin
 	case(state)	
 		modified: begin
@@ -241,3 +241,123 @@ begin
 	endcase
 	end
 endmodule
+*/
+
+initial
+begin
+	case(state)	
+		modified: begin
+		if(operation == s_rfo) begin					// Snoop result generation pending
+			out_snoop = hitm;
+			out_bus = WRITE;					
+			next_state = invalid;					
+			end
+		else if (operation == s_read) begin
+			out_snoop = hitm;
+			next_state = shared;
+			out_bus = WRITE;
+			end
+			
+		else if (operation == cpu_read || operation == cpu_read_l2 || operation == cpu_write) begin
+			next_state = modified;
+			out_bus = NOP;
+			end	
+		else begin
+			next_state = modified;
+			end
+		end
+				
+		exclusive : begin
+			if (operation == s_rfo) begin
+			out_snoop = hit;
+			out_bus = WRITE; // Forward
+			next_state = invalid;
+			end
+			else if(operation == s_read && in_snoop == hit) begin
+			out_snoop = hit;
+			out_bus = WRITE; // Forward
+			next_state = shared;
+			end
+			
+			//else if(operation = cpu_read) begin
+			//out_bus = NOP;
+			//next_state = exclusive;
+			//end
+			else if (operation == cpu_write) begin
+			out_bus = NOP;
+			next_state = modified;
+			end
+			else begin
+			next_state = exclusive;
+			end
+		end
+		
+		shared : begin
+		if (operation == s_rfo) begin
+		out_bus = NOP;
+		next_state = invalid;
+		end
+		//else if (operation = s_read) begin
+		//out_bus = NOP;
+		//next_state = shared;
+		//end
+		
+		//else if(operation = cpu_read) begin
+		//out_bus = NOP;
+		//next_state = shared;
+		//end
+		else if(operation == cpu_write) begin
+		out_bus = RFO;
+		next_state = modified;
+		end
+		else begin
+		next_state = shared;
+		end
+	end
+	
+		invalid : begin
+		if(operation == cpu_read && in_snoop == hit) begin
+		out_bus = READ;
+		next_state = forward;
+		end
+		else if(operation == cpu_read && in_snoop == nohit) begin
+		out_bus = READ;
+		next_state = exclusive;
+		end
+		else if(operation == cpu_write) begin
+		out_bus = RFO;
+		next_state = modified;
+		end
+		else begin
+		next_state = invalid;
+		end
+	end
+	
+		forward : begin
+		if(operation == s_rfo) begin
+		out_snoop = hit;
+		out_bus = WRITE;
+		next_state = invalid;
+		end
+		else if(operation == s_read) begin
+		out_snoop = hit;
+		out_bus = WRITE;
+		next_state = shared;
+		end
+		
+		//else if(operation = cpu_read) begin
+		//out_bus = NOP;
+		//next_state = forward;
+		//end
+		else if(operation == cpu_write) begin
+		out_bus = RFO;
+		next_state = modified;
+		end
+		else begin
+		next_state = forward;
+		end
+	end
+	end
+	
+	endcase
+	end
