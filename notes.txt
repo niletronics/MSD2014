@@ -6,8 +6,15 @@ changes done in master branch
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 I am creating a branch and want to see if that works
 >>>>>>> origin/master
+=======
+I am creating a branch and want to see if that works.
+
+Change done in nilesh branch.again
+Change done in nilesh branch.again
+>>>>>>> origin/Nilesh
 =======
 I am creating a branch and want to see if that works  : test branch again
 >>>>>>> origin/test
